@@ -43,7 +43,7 @@ class KokoroTTSModel(TextToSpeechModel):
         return self._sample_rate
 
     def synthesize(self, text: str, voice: str = "af_heart") -> FloatTensor:
-        generator = self.pipeline(text, voice=voice)
+        generator = self.pipeline(text.replace("\n", " "), voice=voice)
         # Get the first generated audio
         for i, (_, _, audio) in enumerate(generator):
             if isinstance(audio, FloatTensor):

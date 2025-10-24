@@ -2,6 +2,13 @@
 
 Small, opinionated starter project for a chatbot focused on long-form, multi-turn conversations with explicit, configurable memory management.
 
+## Features
+
+- **Speech-to-speech interaction**: Speak naturally and get spoken responses
+- **Multi-turn conversations**: Maintain context across extended dialogues
+- **Automatic conversation summaries**: Generated at session end and saved to disk
+- **Modular architecture**: Swap STT, TTS, or LLM models easily
+
 ## Purpose
 
 - Support extended, coherent conversations (not a series of unrelated short chats).

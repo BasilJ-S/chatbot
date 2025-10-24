@@ -28,11 +28,11 @@ def record_audio(sample_rate: int = 44100, channels: int = 1) -> np.ndarray:
     return audio_data
 
 
-def play_audio(audio_data: np.ndarray, sample_rate: int = 44100):
+def play_audio(audio_data: np.ndarray, sample_rate: int = 44100, wait: bool = False):
     """Play audio with padding for better playback."""
     padding = np.zeros(int(sample_rate * 0.15))  # 150ms of silence
     audio_np = np.concatenate([padding, audio_data])
-    sd.play(audio_np, samplerate=sample_rate, blocking=False)
+    sd.play(audio_np, samplerate=sample_rate, blocking=wait)
 
 
 if __name__ == "__main__":

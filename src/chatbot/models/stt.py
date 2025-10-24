@@ -19,7 +19,7 @@ class SpeechToTextModel(ABC):
 
 
 class WhisperSTTModel(SpeechToTextModel):
-    def __init__(self, model_name: str = "openai/whisper-small"):
+    def __init__(self, model_name: str = "openai/whisper-small") -> None:
         # load model and processor
         self.processor = WhisperProcessor.from_pretrained(model_name)
         self.model = WhisperForConditionalGeneration.from_pretrained(model_name)
@@ -45,7 +45,7 @@ class WhisperSTTModel(SpeechToTextModel):
             predicted_ids, skip_special_tokens=True
         )
 
-        return transcription
+        return transcription[0]
 
 
 if __name__ == "__main__":
