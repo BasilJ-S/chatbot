@@ -6,26 +6,37 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 class LanguageModel(ABC):
 
-    @property
-    @abstractmethod
-    def history(self) -> list[dict[str, str]]:
-        """Return the chat history."""
-        pass
-
     @abstractmethod
     def generate(self, messages: list[dict[str, str]]) -> str:
         """Generate a response based on the given prompt and chat history."""
         pass
 
-    def chat(self, prompt: str) -> str:
-        message = {"role": "user", "content": prompt}
-        self.history.append(message)
-        messages = [
-            *self.history,
-        ]
-        content = self.generate(messages)
 
-        self.history.append({"role": "assistant", "content": content})
+class ConversationMemory:
+    def __init__(self, system_prompt: str = ""):
+        self._history: list[dict[str, str]] = []
+        self.system_prompt = system_prompt
+
+        self._history.append({"role": "system", "content": system_prompt})
+
+    @property
+    def history(self) -> list[dict[str, str]]:
+        return self._history.copy()
+
+    def add_message(self, role: str, content: str):
+        self._history.append({"role": role, "content": content})
+
+
+class ChatSession:
+    def __init__(self, llm: LanguageModel, system_prompt: str = ""):
+        self.llm = llm
+        self.memory = ConversationMemory(system_prompt=system_prompt)
+
+    def chat(self, prompt: str) -> str:
+        self.memory.add_message("user", prompt)
+        messages = self.memory.history
+        content = self.llm.generate(messages)
+        self.memory.add_message("assistant", content)
         return content
 
 
@@ -33,11 +44,10 @@ class Quen3_4B(LanguageModel):
     def __init__(
         self,
         max_new_tokens: int = 200,
-        temperature: float = 0.7,
+        temperature: float = 1.0,
         top_p: float = 0.8,
         top_k: int = 20,
         min_p: float = 0.0,
-        system_prompt: str = "You are a helpful assistant, who answers in no more than 10 words.",
     ):
         model_name = "Qwen/Qwen3-4B-Instruct-2507"
 
@@ -51,16 +61,6 @@ class Quen3_4B(LanguageModel):
         self.top_p = top_p
         self.temperature = temperature
         self.min_p = min_p
-        self._history: list[dict[str, str]] = [
-            {
-                "role": "system",
-                "content": system_prompt,
-            }
-        ]
-
-    @property
-    def history(self) -> list[dict[str, str]]:
-        return self._history
 
     def generate(self, messages: list[dict[str, str]]) -> str:
         text = self.tokenizer.apply_chat_template(
@@ -91,17 +91,18 @@ if __name__ == "__main__":
     # prepare the model input
     prompt = "Give me a short introduction to large language model."
     llm = Quen3_4B()
-    response = llm.chat(prompt)
+    chat_session = ChatSession(llm=llm, system_prompt="You are a helpful assistant.")
+    response = chat_session.chat(prompt)
     print("Response from Quen3-4B model:")
     print(response)
     while True:
         user_input = input("Enter your prompt (or 'exit' to quit): ")
         if user_input.lower() == "exit":
             break
-        response = llm.chat(user_input)
+        response = chat_session.chat(user_input)
         print("Response:")
         print(response)
     print("Exiting...")
     print("Final conversation history:")
-    for message in llm.history:
+    for message in chat_session.memory.history:
         print(f"{message['role']}: {message['content']}")
