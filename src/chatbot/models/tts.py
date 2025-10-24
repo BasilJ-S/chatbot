@@ -7,8 +7,17 @@ import torch
 from kokoro import KPipeline
 from torch import FloatTensor
 
+from chatbot.utils.audio import play_audio
+
 
 class TextToSpeechModel(ABC):
+
+    @property
+    @abstractmethod
+    def sample_rate(self) -> int:
+        """Return the sample rate of the audio."""
+        pass
+
     @abstractmethod
     def synthesize(self, text: str) -> FloatTensor:
         """Convert text to speech and return audio data as a FloatTensor."""
@@ -27,6 +36,11 @@ class TextToSpeechModel(ABC):
 class KokoroTTSModel(TextToSpeechModel):
     def __init__(self, lang_code: str = "a"):
         self.pipeline = KPipeline(lang_code=lang_code)
+        self._sample_rate = 24000
+
+    @property
+    def sample_rate(self) -> int:
+        return self._sample_rate
 
     def synthesize(self, text: str, voice: str = "af_heart") -> FloatTensor:
         generator = self.pipeline(text, voice=voice)
@@ -35,13 +49,6 @@ class KokoroTTSModel(TextToSpeechModel):
             if isinstance(audio, FloatTensor):
                 return audio
         raise ValueError("No audio generated from the given text")
-
-    def play(self, audio: FloatTensor):
-        audio_np = audio.numpy()
-        samplerate = 24000
-        padding = np.zeros(int(samplerate * 0.15))  # 150ms of silence
-        audio_np = np.concatenate([padding, audio_np])
-        sd.play(audio_np, samplerate=samplerate, blocking=False)
 
 
 if __name__ == "__main__":
@@ -58,5 +65,5 @@ if __name__ == "__main__":
         if user_input.lower() == "exit":
             break
         audio_data = tts_model.synthesize(user_input)
-        tts_model.play(audio_data)
-        tts_model.save(audio_data, output_file)
+        play_audio(audio_data.numpy(), sample_rate=tts_model.sample_rate)
+        sf.write(output_file, audio_data.numpy(), samplerate=tts_model.sample_rate)
