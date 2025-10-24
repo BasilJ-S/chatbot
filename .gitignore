@@ -10,3 +10,4 @@ wheels/
 .venv
 conversation_history
 unsecure_secrets
+logs

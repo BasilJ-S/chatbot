@@ -8,6 +8,7 @@ from numpy.ma import masked
 from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
 from chatbot.utils.audio import record_audio
+from chatbot.utils.chatbot_logger import logger
 
 
 class SpeechToTextModel(ABC):
@@ -54,4 +55,4 @@ if __name__ == "__main__":
 
     audio = record_audio(sample_rate=SAMPLE_RATE).squeeze()
     transcription = stt_model.transcribe(audio)
-    print("Final Transcription:", transcription)
+    logger.info("Final Transcription:", transcription)

@@ -8,6 +8,7 @@ from kokoro import KPipeline
 from torch import FloatTensor
 
 from chatbot.utils.audio import play_audio
+from chatbot.utils.chatbot_logger import logger
 
 
 class TextToSpeechModel(ABC):
@@ -56,7 +57,7 @@ if __name__ == "__main__":
     text = "Hello, this is a test of the Kokoro TTS model."
     output_file = "test_output.wav"
     audio_data = tts_model.synthesize(text)
-    print("Synthesized audio data type:", type(audio_data))
+    logger.info("Synthesized audio data type:", type(audio_data))
     tts_model.play(audio_data)
     tts_model.save(audio_data, output_file)
 

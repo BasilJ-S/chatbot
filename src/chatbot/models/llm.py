@@ -5,6 +5,8 @@ from re import I
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
+from chatbot.utils.chatbot_logger import logger
+
 
 class LanguageModel(ABC):
 
@@ -117,16 +119,16 @@ if __name__ == "__main__":
     llm = HuggingFaceDirectLM(config=FACEBOOK_MOBILELLM_CONFIG)
     chat_session = ChatSession(llm=llm, system_prompt="You are a helpful assistant.")
     response = chat_session.chat(prompt)
-    print("Response from model:")
-    print(response)
+    logger.info("Response from model:")
+    logger.info(response)
     while True:
         user_input = input("Enter your prompt (or 'exit' to quit): ")
         if user_input.lower() == "exit":
             break
         response = chat_session.chat(user_input)
-        print("Response:")
-        print(response)
-    print("Exiting...")
-    print("Final conversation history:")
+        logger.info("Response:")
+        logger.info(response)
+    logger.info("Exiting...")
+    logger.info("Final conversation history:")
     for message in chat_session.memory.history:
-        print(f"{message['role']}: {message['content']}")
+        logger.info(f"{message['role']}: {message['content']}")

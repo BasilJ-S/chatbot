@@ -1,2 +1,2 @@
 def main() -> None:
-    print("Hello from chatbot!")
+    logger.info("Hello from chatbot!")
