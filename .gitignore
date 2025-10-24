@@ -9,3 +9,4 @@ wheels/
 # Virtual environments
 .venv
 conversation_history
+unsecure_secrets

@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from re import I
 
-from sympy.printing.pytorch import torch
+import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 
@@ -40,60 +42,82 @@ class ChatSession:
         return content
 
 
-class Quen3_4B(LanguageModel):
-    def __init__(
-        self,
-        max_new_tokens: int = 200,
-        temperature: float = 1.0,
-        top_p: float = 0.8,
-        top_k: int = 20,
-        min_p: float = 0.0,
-    ):
-        model_name = "Qwen/Qwen3-4B-Instruct-2507"
+@dataclass
+class LLMConfig:
+    model_name: str
+    description: str = ""
+    max_new_tokens: int | None = 200
+    temperature: float | None = None
+    top_p: float | None = None
+    top_k: int | None = None
+    min_p: float | None = None
 
-        # load the tokenizer and the model
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name, torch_dtype="auto", device_map="auto"
+
+QUEN3_4B_CONFIG = LLMConfig(
+    model_name="Qwen/Qwen3-4B-Instruct-2507",
+    description="Qwen3-4B model fine-tuned for instruction following. A bit slow but good quality.",
+    max_new_tokens=200,
+    temperature=0.7,  # Parameters recommended in best practices for instruction following model.
+    top_p=0.8,
+    top_k=20,
+    min_p=0.0,
+)
+
+FACEBOOK_MOBILELLM_CONFIG = LLMConfig(
+    model_name="facebook/MobileLLM-Pro",
+    description="Facebook MobileLLM Pro model optimized for mobile and edge devices. Fast, good for testing, low quality.",
+)
+
+DOLPHIN_LLAMA_CONFIG = LLMConfig(
+    model_name="dphn/Dolphin3.0-Llama3.2-3B",
+    description="Dolphin 3.0 LLaMA 3.2 3B model. Faster, lower quality, with safety barriers intentionally removed. Use with caution.",
+)
+
+
+class HuggingFaceDirectLM(LanguageModel):
+
+    def __init__(self, config: LLMConfig):
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            config.model_name, trust_remote_code=True
         )
-        self.max_new_tokens = max_new_tokens
-        self.top_k = top_k
-        self.top_p = top_p
-        self.temperature = temperature
-        self.min_p = min_p
+        self.model = AutoModelForCausalLM.from_pretrained(
+            config.model_name,
+            torch_dtype="auto",
+            device_map="auto",
+            trust_remote_code=True,
+        )
+        self.config = config
 
     def generate(self, messages: list[dict[str, str]]) -> str:
-        text = self.tokenizer.apply_chat_template(
+        inputs = self.tokenizer.apply_chat_template(
             messages,
-            tokenize=False,
             add_generation_prompt=True,
-        )
-        print("Model input text:", text)
-        model_inputs = self.tokenizer([text], return_tensors="pt").to(self.model.device)
+            tokenize=True,
+            return_dict=True,
+            return_tensors="pt",
+        ).to(self.model.device)
 
-        # conduct text completion
-        generated_ids = self.model.generate(
-            **model_inputs,
-            max_new_tokens=self.max_new_tokens,
-            temperature=self.temperature,
-            top_p=self.top_p,
-            top_k=self.top_k,
-            min_p=self.min_p,
+        outputs = self.model.generate(
+            **inputs,
+            max_new_tokens=self.config.max_new_tokens,
+            temperature=self.config.temperature,
+            top_p=self.config.top_p,
+            top_k=self.config.top_k,
+            min_p=self.config.min_p,
         )
-        output_ids = generated_ids[0][len(model_inputs.input_ids[0]) :].tolist()
-
-        content = self.tokenizer.decode(output_ids, skip_special_tokens=True)
-        return content
+        return self.tokenizer.decode(
+            outputs[0][inputs["input_ids"].shape[-1] :], skip_special_tokens=True
+        )
 
 
 if __name__ == "__main__":
 
     # prepare the model input
     prompt = "Give me a short introduction to large language model."
-    llm = Quen3_4B()
+    llm = HuggingFaceDirectLM(config=FACEBOOK_MOBILELLM_CONFIG)
     chat_session = ChatSession(llm=llm, system_prompt="You are a helpful assistant.")
     response = chat_session.chat(prompt)
-    print("Response from Quen3-4B model:")
+    print("Response from model:")
     print(response)
     while True:
         user_input = input("Enter your prompt (or 'exit' to quit): ")

@@ -37,3 +37,5 @@ Also requires pip to be installed for kokoro running, which requires
 ```
 uv venv --seed
 ```
+
+Lastly, some models require authentification through huggingface and permission from the individual models. See the individual models on huggingface for more details. The easiest way to do this is with the CLI (https://huggingface.co/docs/huggingface_hub/en/guides/cli). Models that require this include `MobileLLM-Pro`
