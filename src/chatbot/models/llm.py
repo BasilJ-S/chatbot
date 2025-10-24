@@ -30,6 +30,17 @@ class ConversationMemory:
     def add_message(self, role: str, content: str):
         self._history.append({"role": role, "content": content})
 
+    def clear(self):
+        self._history = []
+        if self.system_prompt:
+            self._history.append({"role": "system", "content": self.system_prompt})
+
+    def update_system_prompt_in_history(self, new_prompt: str):
+        if self._history and self._history[0]["role"] == "system":
+            self._history[0]["content"] = new_prompt
+        else:
+            self._history.insert(0, {"role": "system", "content": new_prompt})
+
 
 class ChatSession:
     def __init__(self, llm: LanguageModel, system_prompt: str = ""):
