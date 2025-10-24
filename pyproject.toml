@@ -7,7 +7,13 @@ authors = [
     { name = "BasilJ-S", email = "18bjjs@queensu.ca" }
 ]
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "accelerate>=1.11.0",
+    "kokoro>=0.9.4",
+    "numpy>=2.3.4",
+    "sounddevice>=0.5.3",
+    "soundfile>=0.13.1",
+]
 
 [project.scripts]
 chatbot = "chatbot:main"
