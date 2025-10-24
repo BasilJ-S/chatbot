@@ -15,6 +15,13 @@ def record_audio(sample_rate: int = 44100, channels: int = 1) -> np.ndarray:
 
     # Wait for 'r' to start
     input("To start recording press enter.")
+    # If audio is playing, stop it
+    try:
+        if sd.get_stream().active:
+            print("Stopping existing audio stream...")
+            sd.stop()
+    except Exception:
+        pass  # No existing stream
 
     # Start streaming
     with sd.InputStream(samplerate=sample_rate, channels=channels, callback=callback):
