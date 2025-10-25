@@ -4,6 +4,7 @@ from chatbot.models.llm import (
     DOLPHIN_LLAMA_CONFIG,
     FACEBOOK_MOBILELLM_CONFIG,
     QUEN3_4B_CONFIG,
+    SMOLLLM_CONFIG,
     ChatSession,
     HuggingFaceDirectLM,
 )
@@ -24,15 +25,24 @@ def format_message_history(history: list[dict[str, str]]) -> str:
 if __name__ == "__main__":
     stt_model = WhisperSTTModel()
     tts_model = KokoroTTSModel()
-    llm = HuggingFaceDirectLM(DOLPHIN_LLAMA_CONFIG)
-    analysis_llm = HuggingFaceDirectLM(QUEN3_4B_CONFIG)
+
+    analysis_llm_config = QUEN3_4B_CONFIG
+    llm_config = SMOLLLM_CONFIG
+    llm = HuggingFaceDirectLM(llm_config)
+    analysis_llm = HuggingFaceDirectLM(analysis_llm_config)
     analysis_chat = ChatSession(
         llm=analysis_llm,
         system_prompt="You analyze conversations and provide advice on how the assistant can improve its responses. You keep responses to one short sentence in length. You focus on the most recent user-assistant exchanges. If the assistant performed well, give an empty response. If the assistant forgot something, remind them of it.",
     )
+    memory_chat = ChatSession(
+        llm=analysis_llm,
+        system_prompt="You are an expert at managing conversation memory for a voice assistant. You help keep the assistant's memory relevant and concise by summarizing or removing less important details. You keep responses to one short sentence in length.",
+        system_prompt_prefix=analysis_llm_config.system_prompt_prefix,
+    )
     chat_session = ChatSession(
         llm=llm,
         system_prompt="You are a helpful voice assistant. Keep your responses concise, very short, and unformatted, suitable for spoken delivery. Add very infrequent filler words like um or uh to make speech sound natural. Do not include any emojis.",
+        system_prompt_prefix=llm_config.system_prompt_prefix,
     )
 
     SAMPLE_RATE = stt_model.sample_rate
@@ -63,14 +73,22 @@ if __name__ == "__main__":
         analysis_response = analysis_chat.chat(
             f"Analyze the following conversation. Give one piece of advice on how to improve the conversation.\n{chat_history}"
         )
+        memory_response = memory_chat.chat(
+            f"Analyze the following conversation. Write a concise memory for the assistant.\n{chat_history}"
+        )
+        logger.info(f"Memory Response: {memory_response}")
+        memory_chat.memory.clear()  # Clear memory to focus on recent context
         analysis_chat.memory.clear()  # Clear memory to focus on recent context
         advice = analysis_response
         chat_session.memory.update_system_prompt_in_history(
-            f"Original Prompt:{chat_session.memory.system_prompt}. Feedback: {advice}"
+            f"Original Prompt:{chat_session.memory.system_prompt}. Feedback: {advice}. Memory: {memory_response}"
         )
 
         logger.info(f"Analysis Response: {analysis_response}")
         logger.info(
+            f"System prompt updated with analysis advice. New system prompt: {chat_session.memory.history[0]}"
+        )
+        print(
             f"System prompt updated with analysis advice. New system prompt: {chat_session.memory.history[0]}"
         )
         print(f"Analysis: {analysis_response}")
@@ -91,6 +109,7 @@ if __name__ == "__main__":
     summary_chat = ChatSession(
         llm=analysis_llm,
         system_prompt="You are an expert summarizer. You are concise, and provide formatted summaries showing the key points discussed in each section of the conversation.",
+        system_prompt_prefix=analysis_llm_config.system_prompt_prefix,
     )
     summary = summary_chat.chat(
         f"Please summarize the following conversation:\n{formatted_history}"
@@ -99,6 +118,7 @@ if __name__ == "__main__":
     two_word_chat = ChatSession(
         llm=analysis_llm,
         system_prompt="You are an expert summarizer. You provide two or three word comma separated summaries of conversations. For example, if the conversation is about planning a trip to Paris, you might respond with 'paris,trip'.",
+        system_prompt_prefix=analysis_llm_config.system_prompt_prefix,
     )
     two_word_summary = two_word_chat.chat(
         f"Please summarize the following conversation in two or three words:\n{formatted_history}"

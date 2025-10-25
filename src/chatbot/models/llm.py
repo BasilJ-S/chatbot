@@ -43,9 +43,17 @@ class ConversationMemory:
 
 
 class ChatSession:
-    def __init__(self, llm: LanguageModel, system_prompt: str = ""):
+    def __init__(
+        self,
+        llm: LanguageModel,
+        system_prompt: str = "",
+        system_prompt_prefix: str = "",
+    ):
         self.llm = llm
-        self.memory = ConversationMemory(system_prompt=system_prompt)
+        self.memory = ConversationMemory(
+            system_prompt=system_prompt_prefix + system_prompt
+        )
+        self.system_prompt_prefix = system_prompt_prefix
 
     def chat(self, prompt: str) -> str:
         self.memory.add_message("user", prompt)
@@ -64,6 +72,7 @@ class LLMConfig:
     top_p: float | None = None
     top_k: int | None = None
     min_p: float | None = None
+    system_prompt_prefix: str = ""
 
 
 QUEN3_4B_CONFIG = LLMConfig(
@@ -84,6 +93,14 @@ FACEBOOK_MOBILELLM_CONFIG = LLMConfig(
 DOLPHIN_LLAMA_CONFIG = LLMConfig(
     model_name="dphn/Dolphin3.0-Llama3.2-3B",
     description="Dolphin 3.0 LLaMA 3.2 3B model. Faster, lower quality, with safety barriers intentionally removed. Use with caution.",
+)
+
+SMOLLLM_CONFIG = LLMConfig(
+    model_name="HuggingFaceTB/SmolLM3-3B",
+    description="SmolLLM 3B model. Very small and fast, low quality.",
+    temperature=0.6,
+    top_p=0.95,
+    system_prompt_prefix="/no_think",
 )
 
 
